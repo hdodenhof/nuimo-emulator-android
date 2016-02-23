@@ -54,11 +54,12 @@ class Nuimo(val context: Context) {
     private val bluetoothStateChangeBroadcastReceiver = BluetoothStateChangeBroadcastReceiver()
     private val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private var gattServer: BluetoothGattServer? = null
-    private val adapter: BluetoothAdapter? = manager.adapter.apply { name = "Nuimo" }
+    private val adapter: BluetoothAdapter? = manager.adapter
     private val addedServices = HashSet<UUID>()
     private var advertiser: BluetoothLeAdvertiser? = null
     private val advertiserListener = NuimoAdvertiseCallback()
     private var subscribedCharacteristics = HashMap<UUID, BluetoothGattCharacteristic>()
+    private var originalDeviceName: String? = null
     private var accumulatedRotationValue = 0.0f
     private var lastRotationEventNanos = System.nanoTime()
 
@@ -72,6 +73,8 @@ class Nuimo(val context: Context) {
 
     private fun powerOn() {
         if (on || adapter == null) return
+
+        setNuimoDeviceName()
 
         advertiser = adapter.bluetoothLeAdvertiser
         gattServer = manager.openGattServer(context, NuimoGattServerCallback())
@@ -109,7 +112,18 @@ class Nuimo(val context: Context) {
         gattServer?.close()
         gattServer = null
         advertiser = null
+        resetDeviceName()
         listener?.onPowerOff()
+    }
+
+    private fun setNuimoDeviceName() {
+        originalDeviceName = adapter?.name
+        adapter?.name = "Nuimo"
+    }
+
+    private fun resetDeviceName() {
+        adapter?.name = originalDeviceName
+        originalDeviceName = null
     }
 
     private fun disconnect(device: BluetoothDevice) {
